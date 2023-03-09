@@ -672,8 +672,6 @@ void LCD_SetTextFont(pFONT *fonts)
 
 void LCD_DisplayChinese(uint16_t x, uint16_t y, char *pText) 
 {
-  printf("%s %d\r\n", pText, strlen("你"));
-
 	uint16_t  i=0,index = 0, counter = 0;	// 计数变量
 	uint16_t  addr;	// 字模地址
   uint8_t   disChar;	//字模的值
@@ -685,7 +683,6 @@ void LCD_DisplayChinese(uint16_t x, uint16_t y, char *pText)
 		if ( *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 0)==*pText && *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 1)==*(pText+1) && *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 2)==*(pText+2))	
 		{   
 			addr = i;	// 字模地址偏移
-      printf("Found\r\n");      
 			break;
 		}
     //next line
