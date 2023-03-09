@@ -671,8 +671,10 @@ void LCD_DisplayChinese(uint16_t x, uint16_t y, char *pText)
 		{   
 			addr=i;	// 字模地址偏移
 			break;
-		}				
-		i+=2;	// 每个中文字符编码占两字节
+		}		
+		// Next line is Chinese character as Index.
+		// So jump to next next line.		
+		i+=2; 
 
 		if(i >= LCD_CHFonts->Table_Rows)	break;	// 字模列表中无相应的汉字	
 	}	
@@ -737,7 +739,7 @@ void LCD_DisplayText(uint16_t x, uint16_t y, char *pText)
 		{			
 			LCD_DisplayChinese(x,y,pText);	// 显示汉字
 			x+=LCD_CHFonts->Width;				// 水平坐标调到下一个字符处
-			pText+= strlen("你");								// 字符串地址+2，汉字的编码要2字节
+			pText+= strlen("你"); //UTF8是3字节，GB是2字节
 		}
 	}	
 }
