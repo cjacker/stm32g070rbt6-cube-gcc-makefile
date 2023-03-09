@@ -16,6 +16,9 @@
 
 TARGET = stm32g070rbt6
 
+# LCD_096 0.96inch ST7735 
+# LCD_114 1.14inch ST7789
+TARGET_DEFS = -DLCD_096
 
 ######################################
 # building variables
@@ -50,7 +53,7 @@ Drivers/User/Src/led.c \
 Drivers/User/Src/usart.c \
 Drivers/User/Src/key.c \
 Drivers/User/Src/lcd_fonts.c \
-Drivers/User/Src/lcd_spi_096.c \
+Drivers/User/Src/lcd_spi.c \
 Drivers/User/Src/lcd_image.c \
 Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_uart.c \
 Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_spi.c \
@@ -151,6 +154,9 @@ endif
 
 # Generate dependency information
 CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
+
+# User cflags
+CFLAGS += $(TARGET_DEFS)
 
 #######################################
 # LDFLAGS

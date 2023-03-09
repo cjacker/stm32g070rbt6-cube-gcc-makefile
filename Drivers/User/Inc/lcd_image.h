@@ -6,7 +6,8 @@
 // 声明图片定义，以便其它文件引用
 
 extern const uint8_t Image_Android_60x60[];	
-extern const uint8_t	Image_Toys_60x60[];
+extern const uint8_t Image_Toys_60x60[];
+extern const uint8_t Image_Video_60x60[];
 
 
 

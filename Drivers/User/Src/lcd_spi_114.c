@@ -1,21 +1,21 @@
 /***
 	************************************************************************************************************************************************************************************************
-	*	@file   	lcd_spi_096.c
+	*	@file   	lcd_spi_114.c
 	*	@version V1.0
 	*  @date    2021-11-22
 	*	@author  反客科技
-	*	@brief   SPI驱动显示屏，屏幕控制器 ST7735
+	*	@brief   SPI驱动显示屏，屏幕控制器 ST7789
    **********************************************************************************************************************************************************************************************
    *  @description
 	*
-	*	实验平台：反客STM32G070RBT6核心板 （型号：FK-G070M1-RBT6）+ 0.96寸液晶模块（型号：SPI096M1-160*80）
+	*	实验平台：反客STM32G070RBT6核心板 （型号：FK-G070M1-RBT6）+ 1.14寸液晶模块（型号：SPI114M1-240*135） 
 	*	淘宝地址：https://shop212360197.taobao.com
 	*	QQ交流群：536665479
 	*
 >>>>> 重要说明：
 	*
 	*  1.屏幕配置为16位RGB565格式
-	*  2.SPI通信速度为16M，清屏 LCD_Clear() 所需时间为14.5ms，约为68.9帧
+	*  2.SPI通信速度为32M（STM32G0所允许的最高速度），清屏 LCD_Clear() 所需时间为18.3ms，约为54.6帧
    *
 >>>>> 其他说明：
 	*
@@ -26,7 +26,6 @@
 ***/
 
 #include "lcd_spi.h"
-
 
 SPI_HandleTypeDef hspi2;	      // SPI_HandleTypeDef 结构体变量
 
@@ -125,10 +124,8 @@ void MX_SPI2_Init(void)
 	LCD_SPI.Init.CLKPhase 						= SPI_PHASE_1EDGE;            					//	数据在CLK第一个边沿有效
 	LCD_SPI.Init.NSS 								= SPI_NSS_HARD_OUTPUT;        					//	使用硬件片选   
 	
-// SPI2 的内核时钟 = 64M，然后再经过4分频得到16M 的SCK驱动时钟（ 屏幕控制器ST7735给出的最高速度为15M ）
-// 实际测试，即使给到二、三十M	的时钟，屏幕也能稳定工作，因此这里设置的16M虽然超出了手册的规定范围，但仍然可以稳定工作
-// 要求高的客户可以重新设置整个G0系列的时钟，用以得到15M的SPI时钟	
-	LCD_SPI.Init.BaudRatePrescaler 			= SPI_BAUDRATEPRESCALER_4;
+// SPI2 的内核时钟 = 64M，然后再经过2分频得到 32M 的SCK驱动时钟,此为 G070 所允许的最高速度
+	LCD_SPI.Init.BaudRatePrescaler 			= SPI_BAUDRATEPRESCALER_2;
 	
 	LCD_SPI.Init.FirstBit	 					= SPI_FIRSTBIT_MSB;									//	高位在先
 	LCD_SPI.Init.TIMode 							= SPI_TIMODE_DISABLE;         					//	禁止TI模式
@@ -230,86 +227,76 @@ void SPI_LCD_Init(void)
    HAL_Delay(10);               	// 屏幕刚完成复位时（包括上电复位），需要等待至少5ms才能发送指令
 
  	LCD_WriteCommand(0x36);       // 显存访问控制 指令，用于设置访问显存的方式
-	LCD_WriteData_8bit(0x08);     
+	LCD_WriteData_8bit(0x00);     // 配置成 从上到下、从左到右，RGB像素格式
 
 	LCD_WriteCommand(0x3A);			// 接口像素格式 指令，用于设置使用 12位、16位还是18位色
 	LCD_WriteData_8bit(0x05);     // 此处配置成 16位 像素格式
 
-// 以下为各个电压参数的配置，直接使用液晶厂家给出的参数	
-	LCD_WriteCommand(0xB1);     //Normal mode
-	LCD_WriteData_8bit(0x05);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteCommand(0xB2);     //Idle mode
-	LCD_WriteData_8bit(0x05);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteCommand(0xB3);     //Partial mode
-	LCD_WriteData_8bit(0x05);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteData_8bit(0x05);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteData_8bit(0x3C);   
-	LCD_WriteCommand(0xB4);     //Dot inversion
-	LCD_WriteData_8bit(0x03);   
-	LCD_WriteCommand(0xC0);     //AVDD GVDD
-	LCD_WriteData_8bit(0xAB);   
-	LCD_WriteData_8bit(0x0B);   
-	LCD_WriteData_8bit(0x04);   
-	LCD_WriteCommand(0xC1);     //VGH VGL
-	LCD_WriteData_8bit(0xC5);   //C0
-	LCD_WriteCommand(0xC2);     //Normal Mode
-	LCD_WriteData_8bit(0x0D);   
-	LCD_WriteData_8bit(0x00);   
-	LCD_WriteCommand(0xC3);     //Idle
-	LCD_WriteData_8bit(0x8D);   
-	LCD_WriteData_8bit(0x6A);   
-	LCD_WriteCommand(0xC4);     //Partial+Full
-	LCD_WriteData_8bit(0x8D);   
-	LCD_WriteData_8bit(0xEE);   
-	LCD_WriteCommand(0xC5);     //VCOM
-	LCD_WriteData_8bit(0x0F);   
+// 接下来很多都是电压设置指令，直接使用厂家给设定值
+ 	LCD_WriteCommand(0xB2);			
+	LCD_WriteData_8bit(0x0C);
+	LCD_WriteData_8bit(0x0C); 
+	LCD_WriteData_8bit(0x00); 
+	LCD_WriteData_8bit(0x33); 
+	LCD_WriteData_8bit(0x33); 			
+
+	LCD_WriteCommand(0xB7);		   // 栅极电压设置指令	
+	LCD_WriteData_8bit(0x35);     // VGH = 13.26V，VGL = -10.43V
+
+	LCD_WriteCommand(0xBB);			// 公共电压设置指令
+	LCD_WriteData_8bit(0x19);     // VCOM = 1.35V
+
+	LCD_WriteCommand(0xC0);
+	LCD_WriteData_8bit(0x2C);
+
+	LCD_WriteCommand(0xC2);       // VDV 和 VRH 来源设置
+	LCD_WriteData_8bit(0x01);     // VDV 和 VRH 由用户自由配置
+
+	LCD_WriteCommand(0xC3);			// VRH电压 设置指令  
+	LCD_WriteData_8bit(0x12);     // VRH电压 = 4.6+( vcom+vcom offset+vdv)
+				
+	LCD_WriteCommand(0xC4);		   // VDV电压 设置指令	
+	LCD_WriteData_8bit(0x20);     // VDV电压 = 0v
+
+	LCD_WriteCommand(0xC6); 		// 正常模式的帧率控制指令
+	LCD_WriteData_8bit(0x0F);   	// 设置屏幕控制器的刷新帧率为60帧    
+
+	LCD_WriteCommand(0xD0);			// 电源控制指令
+	LCD_WriteData_8bit(0xA4);     // 无效数据，固定写入0xA4
+	LCD_WriteData_8bit(0xA1);     // AVDD = 6.8V ，AVDD = -4.8V ，VDS = 2.3V
 
 	LCD_WriteCommand(0xE0);       // 正极电压伽马值设定
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x0E);   
-	LCD_WriteData_8bit(0x08);   
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x10);   
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x02);   
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x09);   
-	LCD_WriteData_8bit(0x0F);   
-	LCD_WriteData_8bit(0x25);   
-	LCD_WriteData_8bit(0x36);   
-	LCD_WriteData_8bit(0x00);   
-	LCD_WriteData_8bit(0x08);   
-	LCD_WriteData_8bit(0x04);   
-	LCD_WriteData_8bit(0x10);   
+	LCD_WriteData_8bit(0xD0);
+	LCD_WriteData_8bit(0x04);
+	LCD_WriteData_8bit(0x0D);
+	LCD_WriteData_8bit(0x11);
+	LCD_WriteData_8bit(0x13);
+	LCD_WriteData_8bit(0x2B);
+	LCD_WriteData_8bit(0x3F);
+	LCD_WriteData_8bit(0x54);
+	LCD_WriteData_8bit(0x4C);
+	LCD_WriteData_8bit(0x18);
+	LCD_WriteData_8bit(0x0D);
+	LCD_WriteData_8bit(0x0B);
+	LCD_WriteData_8bit(0x1F);
+	LCD_WriteData_8bit(0x23);
 
 	LCD_WriteCommand(0xE1);      // 负极电压伽马值设定
-	LCD_WriteData_8bit(0x0A);   
-	LCD_WriteData_8bit(0x0D);   
-	LCD_WriteData_8bit(0x08);   
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x0F);   
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x02);   
-	LCD_WriteData_8bit(0x07);   
-	LCD_WriteData_8bit(0x09);   
-	LCD_WriteData_8bit(0x0F);   
-	LCD_WriteData_8bit(0x25);   
-	LCD_WriteData_8bit(0x35);   
-	LCD_WriteData_8bit(0x00);   
-	LCD_WriteData_8bit(0x09);   
-	LCD_WriteData_8bit(0x04);   
-	LCD_WriteData_8bit(0x10);
+	LCD_WriteData_8bit(0xD0);
+	LCD_WriteData_8bit(0x04);
+	LCD_WriteData_8bit(0x0C);
+	LCD_WriteData_8bit(0x11);
+	LCD_WriteData_8bit(0x13);
+	LCD_WriteData_8bit(0x2C);
+	LCD_WriteData_8bit(0x3F);
+	LCD_WriteData_8bit(0x44);
+	LCD_WriteData_8bit(0x51);
+	LCD_WriteData_8bit(0x2F);
+	LCD_WriteData_8bit(0x1F);
+	LCD_WriteData_8bit(0x1F);
+	LCD_WriteData_8bit(0x20);
+	LCD_WriteData_8bit(0x23);
 
-	LCD_WriteCommand(0xFC);    
-	LCD_WriteData_8bit(0x80);  
-	
 	LCD_WriteCommand(0x21);       // 打开反显，因为面板是常黑型，操作需要反过来
 
  // 退出休眠指令，LCD控制器在刚上电、复位时，会自动进入休眠模式 ，因此操作屏幕之前，需要退出休眠  
@@ -418,39 +405,39 @@ void LCD_SetDirection(uint8_t direction)
 
    if( direction == Direction_H )   // 横屏显示
    {
-      LCD_WriteCommand(0x36);   			 // 显存访问控制 指令，用于设置访问显存的方式
-      LCD_WriteData_8bit(0xA8);         // 横屏显示
-      LCD.X_Offset   = 1;              // 设置控制器坐标偏移量
-      LCD.Y_Offset   = 26;      
-      LCD.Width      = LCD_Height;		 // 重新赋值长、宽
-      LCD.Height     = LCD_Width;			
+      LCD_WriteCommand(0x36);    		// 显存访问控制 指令，用于设置访问显存的方式
+      LCD_WriteData_8bit(0x70);        // 横屏显示
+      LCD.X_Offset   = 40;             // 设置控制器坐标偏移量
+      LCD.Y_Offset   = 53;   
+      LCD.Width      = LCD_Height;		// 重新赋值长、宽
+      LCD.Height     = LCD_Width;		
    }
    else if( direction == Direction_V )
    {
       LCD_WriteCommand(0x36);    		// 显存访问控制 指令，用于设置访问显存的方式
-      LCD_WriteData_8bit(0xC8);        // 垂直显示 
-      LCD.X_Offset   = 26;             // 设置控制器坐标偏移量
-      LCD.Y_Offset   = 1;     
+      LCD_WriteData_8bit(0x00);        // 垂直显示
+      LCD.X_Offset   = 52;             // 设置控制器坐标偏移量
+      LCD.Y_Offset   = 40;     
       LCD.Width      = LCD_Width;		// 重新赋值长、宽
-      LCD.Height     = LCD_Height;			
+      LCD.Height     = LCD_Height;						
    }
    else if( direction == Direction_H_Flip )
    {
-      LCD_WriteCommand(0x36);    		// 显存访问控制 指令，用于设置访问显存的方式
-      LCD_WriteData_8bit(0x78);        // 横屏显示，并上下翻转，RGB像素格式
-      LCD.X_Offset   = 1;             // 设置控制器坐标偏移量
-      LCD.Y_Offset   = 26;   
-      LCD.Width      = LCD_Height;		// 重新赋值长、宽
+      LCD_WriteCommand(0x36);   			 // 显存访问控制 指令，用于设置访问显存的方式
+      LCD_WriteData_8bit(0xA0);         // 横屏显示，并上下翻转，RGB像素格式
+      LCD.X_Offset   = 40;              // 设置控制器坐标偏移量
+      LCD.Y_Offset   = 52;      
+      LCD.Width      = LCD_Height;		 // 重新赋值长、宽
       LCD.Height     = LCD_Width;				
    }
    else if( direction == Direction_V_Flip )
    {
       LCD_WriteCommand(0x36);    		// 显存访问控制 指令，用于设置访问显存的方式
-      LCD_WriteData_8bit(0x08);        // 垂直显示，并上下翻转，RGB像素格式
-      LCD.X_Offset   = 26;             // 设置控制器坐标偏移量
-      LCD.Y_Offset   = 1;     
+      LCD_WriteData_8bit(0xC0);        // 垂直显示 ，并上下翻转，RGB像素格式
+      LCD.X_Offset   = 53;             // 设置控制器坐标偏移量
+      LCD.Y_Offset   = 40;     
       LCD.Width      = LCD_Width;		// 重新赋值长、宽
-      LCD.Height     = LCD_Height;							
+      LCD.Height     = LCD_Height;				
    }   
 }
 
@@ -674,22 +661,21 @@ void LCD_DisplayChinese(uint16_t x, uint16_t y, char *pText)
 {
 	uint16_t  i=0,index = 0, counter = 0;	// 计数变量
 	uint16_t  addr;	// 字模地址
-  uint8_t   disChar;	//字模的值
+   uint8_t   disChar;	//字模的值
 	uint16_t  Xaddress = 0; //水平坐标
 
 	while(1)
 	{		
 		// 对比数组中的汉字编码，用以定位该汉字字模的地址		
-		if ( *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 0)==*pText && *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 1)==*(pText+1) && *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 2)==*(pText+2))	
+		if ( *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 0)==*pText && *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 1)==*(pText+1) && *(LCD_CHFonts->pTable + (i+1)*LCD_CHFonts->Sizes + 2)==*(pText+2) )	
 		{   
-			addr = i;	// 字模地址偏移
+			addr=i;	// 字模地址偏移
 			break;
-		}
-    //next line
-    i += 1;
+		}				
+		i+=2;	// 每个中文字符编码占两字节
+
 		if(i >= LCD_CHFonts->Table_Rows)	break;	// 字模列表中无相应的汉字	
 	}	
-
 	i=0;
 	for(index = 0; index <LCD_CHFonts->Sizes; index++)
 	{	
@@ -705,7 +691,7 @@ void LCD_DisplayChinese(uint16_t x, uint16_t y, char *pText)
 			{		
             LCD_Buff[i] = LCD.BackColor;		// 否则使用背景色绘制点
 			}
-      i++;
+         i++;
 			disChar >>= 1;
 			Xaddress++;  //水平坐标自加
 			
@@ -751,7 +737,7 @@ void LCD_DisplayText(uint16_t x, uint16_t y, char *pText)
 		{			
 			LCD_DisplayChinese(x,y,pText);	// 显示汉字
 			x+=LCD_CHFonts->Width;				// 水平坐标调到下一个字符处
-			pText+=strlen("你");					// 如果是UTF8则加3，GBK则加2.
+			pText+= strlen("你");								// 字符串地址+2，汉字的编码要2字节
 		}
 	}	
 }

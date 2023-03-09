@@ -12,8 +12,13 @@
 
 /*----------------------------------------------- 参数宏 -------------------------------------------*/
 
-#define LCD_Width     80		// LCD的像素长度
-#define LCD_Height    160		// LCD的像素宽度
+#ifdef LCD_096
+  #define LCD_Width     80		// LCD的像素长度
+  #define LCD_Height    160		// LCD的像素宽度
+#elif defined(LCD_114)
+  #define LCD_Width     135       // LCD的像素长度
+  #define LCD_Height    240       // LCD的像素宽度
+#endif
 
 // 显示方向参数
 // 使用示例：LCD_DisplayDirection(Direction_H) 设置屏幕横屏显示
